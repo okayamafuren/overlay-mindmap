@@ -45,7 +45,7 @@ sudo xattr -rd com.apple.quarantine ~/Desktop/Overlay\ Mindmap.app
 주의: 엔터를 치면 Password와 🔑 모양이 나옵니다. 맥 로그인 비밀번호를 입력하세요. (글자가 안 보여도 입력되고 있으니 다 치고 엔터!)
 두번쨰 방법: 파일을 사용해 아래의 방식 차용.
 
-### 개발 환경에서 실행
+### 개발 환경에서 실행 두 번째 방법
 
 ```bash
 # 의존성 설치
