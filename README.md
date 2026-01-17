@@ -46,31 +46,6 @@ npm run build:mac
 npm run dist:mac
 ```
 
-### Windows 빌드
-
-```bash
-# Windows용 빌드 (NSIS 설치 프로그램 + ZIP)
-npm run build:win
-
-# 또는 dist 폴더에만 생성
-npm run dist:win
-```
-
-### Linux 빌드
-
-```bash
-# Linux용 빌드 (AppImage, DEB, ZIP)
-npm run build:linux
-
-# 또는 dist 폴더에만 생성
-npm run dist:linux
-```
-
-### 모든 플랫폼 빌드
-
-```bash
-npm run build:all
-```
 
 빌드된 파일은 `dist/` 폴더에 생성됩니다.
 
@@ -103,8 +78,6 @@ npm run dist:linux
 4. Release 제목 및 설명 작성
 5. `dist/` 폴더의 빌드 파일들을 업로드:
    - macOS: `Overlay Mindmap-1.0.0-mac.zip`, `Overlay Mindmap-1.0.0.dmg`
-   - Windows: `Overlay Mindmap Setup 1.0.0.exe`, `Overlay Mindmap-1.0.0-win.zip`
-   - Linux: `Overlay Mindmap-1.0.0.AppImage`, `Overlay Mindmap_1.0.0_amd64.deb`
 
 ### 4. 자동 GitHub Release (선택사항)
 
