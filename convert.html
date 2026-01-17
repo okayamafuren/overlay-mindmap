@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SVG to PNG Converter</title>
+</head>
+<body>
+    <h1>SVG to PNG Converter</h1>
+    <p>이 페이지를 열고 개발자 도구 콘솔에서 다음 명령을 실행하세요:</p>
+    <pre>
+// SVG 로드
+const svg = document.createElement('img');
+svg.src = 'icon.svg';
+svg.onload = function() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 512;
+    canvas.height = 512;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(svg, 0, 0);
+    
+    // PNG 다운로드
+    canvas.toBlob(function(blob) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'icon.png';
+        a.click();
+        console.log('icon.png 다운로드 완료!');
+    }, 'image/png');
+};
+    </pre>
+    
+    <script>
+        // 자동 실행
+        window.onload = function() {
+            const svg = new Image();
+            svg.crossOrigin = 'anonymous';
+            svg.src = 'icon.svg';
+            svg.onload = function() {
+                const canvas = document.createElement('canvas');
+                canvas.width = 512;
+                canvas.height = 512;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(svg, 0, 0);
+                
+                canvas.toBlob(function(blob) {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'icon.png';
+                    a.click();
+                    console.log('icon.png 다운로드 완료!');
+                }, 'image/png');
+            };
+        };
+    </script>
+</body>
+</html>

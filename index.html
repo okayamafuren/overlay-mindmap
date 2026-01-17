@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Overlay Mind Map</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- Overlay Root: 모든 레이어 위에 표시되는 전용 컨테이너 -->
+<div id="overlay-root"></div>
+
+<!-- 상단 패널 -->
+<div id="toolbar" class="toolbar">
+    <div class="toolbar-section">
+        <button class="toolbar-btn" id="btn-add" title="노드 추가 (A)">
+            <span class="icon">+</span>
+        </button>
+        <button class="toolbar-btn" id="btn-connect" title="연결 모드 (C)">
+            <span class="icon">●</span>
+        </button>
+        <button class="toolbar-btn" id="btn-delete" title="삭제 (Delete)">
+            <span class="icon">×</span>
+        </button>
+        <div class="toolbar-divider"></div>
+        <button class="toolbar-btn" id="btn-undo" title="실행 취소 (Ctrl+Z)">
+            <span class="icon">↺</span>
+        </button>
+        <button class="toolbar-btn" id="btn-redo" title="다시 실행 (Ctrl+Y)">
+            <span class="icon">↻</span>
+        </button>
+        <div class="toolbar-divider"></div>
+        <button class="toolbar-btn" id="btn-save" title="저장 (Ctrl+S)">
+            <span class="icon">⬇</span>
+        </button>
+        <button class="toolbar-btn" id="btn-open" title="열기 (Ctrl+O)">
+            <span class="icon">⬆</span>
+        </button>
+    </div>
+    
+    <div class="toolbar-section">
+        <button class="toolbar-btn" id="btn-zoom-in" title="확대 (+)">
+            <span class="icon">+</span>
+        </button>
+        <button class="toolbar-btn" id="btn-zoom-out" title="축소 (-)">
+            <span class="icon">−</span>
+        </button>
+        <button class="toolbar-btn" id="btn-zoom-fit" title="맞춤 (F)">
+            <span class="icon">⌂</span>
+        </button>
+        <div class="toolbar-divider"></div>
+        <input type="range" id="zoom-slider" min="25" max="400" value="100" class="zoom-slider">
+        <span id="zoom-value" class="zoom-value">100%</span>
+    </div>
+    
+    <div class="toolbar-section" style="position: relative;">
+        <input type="text" id="search-input" placeholder="검색..." class="search-input">
+        <button class="toolbar-btn" id="btn-search-prev" title="이전 (↑)">
+            <span class="icon">▲</span>
+        </button>
+        <button class="toolbar-btn" id="btn-search-next" title="다음 (↓)">
+            <span class="icon">▼</span>
+        </button>
+        <div id="search-results-dropdown" class="search-results-dropdown hidden"></div>
+    </div>
+    
+    <div class="toolbar-section">
+        <button class="toolbar-btn" id="btn-align" title="정렬 (Ctrl+Shift+L/T/H/V)">
+            <span class="icon">⇅</span>
+        </button>
+    </div>
+    
+    <div class="toolbar-section toolbar-right">
+        <button class="toolbar-btn" id="btn-board-color" title="보드 색상 (검정/흰색/투명)">
+            <span class="icon">⬛</span>
+        </button>
+        <input type="range" id="board-opacity-slider" min="0" max="100" value="10" class="board-opacity-slider" title="보드 투명도">
+        <span id="board-opacity-value" class="board-opacity-value">10%</span>
+        <button class="toolbar-btn" id="btn-board" title="보드 설정">
+            <span class="icon">▣</span>
+        </button>
+        <button class="toolbar-btn" id="btn-mouse-toggle" title="마우스 통과 (P) - 다른 앱 사용 가능">
+            <span class="icon">⊙</span>
+        </button>
+        <button class="toolbar-btn" id="btn-memorization" title="암기 모드 (M)">
+            <span class="icon">◐</span>
+        </button>
+        <div class="toolbar-divider"></div>
+        <button class="toolbar-btn" id="btn-grid-toggle" title="그리드 표시/숨김">
+            <span class="icon">#</span>
+        </button>
+        <button class="toolbar-btn" id="btn-fullscreen" title="전체화면 (F11)">
+            <span class="icon">⛶</span>
+        </button>
+        <button class="toolbar-btn" id="btn-help" title="도움말 (?)">
+            <span class="icon">?</span>
+        </button>
+        <button class="toolbar-btn" id="btn-minimize" 
+                title="최소화"
+                onclick="if(window.ipcRenderer){window.ipcRenderer.send('window-minimize');}else if(typeof require!=='undefined'){require('electron').ipcRenderer.send('window-minimize');}"
+                style="-webkit-app-region: no-drag !important; z-index: 9999999 !important; position: relative;">
+            <span class="icon">_</span>
+        </button>
+        <button class="toolbar-btn" id="btn-close" title="종료 (ESC)">
+            <span class="icon">×</span>
+        </button>
+    </div>
+</div>
+
+<!-- 노드 속성 패널 -->
+<div id="node-panel" class="node-panel hidden">
+    <div class="panel-header">
+        <span>노드 속성</span>
+        <div>
+            <button class="panel-expand" id="node-panel-expand" title="확장/축소">⛶</button>
+            <button class="panel-close" id="close-panel">✕</button>
+        </div>
+    </div>
+    <div class="panel-content">
+        <div class="form-group">
+            <label>텍스트</label>
+            <input type="text" id="node-text" class="form-input">
+        </div>
+        <div class="form-group">
+            <label>색상</label>
+            <input type="color" id="node-color" class="form-color">
+        </div>
+        <div class="form-group">
+            <label>크기</label>
+            <input type="range" id="node-size" min="20" max="80" value="30" class="form-range">
+            <span id="node-size-value">30</span>
+        </div>
+        <div class="form-group">
+            <label>폰트 크기</label>
+            <input type="range" id="node-font-size" min="10" max="24" value="14" class="form-range">
+            <span id="node-font-size-value">14</span>
+        </div>
+        <div class="form-group">
+            <label>모양</label>
+            <select id="node-shape" class="form-select">
+                <option value="circle">원형</option>
+                <option value="square">사각형</option>
+                <option value="diamond">다이아몬드</option>
+                <option value="hexagon">육각형</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>테두리 두께</label>
+            <input type="range" id="node-border" min="0" max="5" value="2" class="form-range">
+            <span id="node-border-value">2</span>
+        </div>
+        <div class="form-group">
+            <label>투명도</label>
+            <input type="range" id="node-opacity" min="0" max="100" value="90" class="form-range">
+            <span id="node-opacity-value">90%</span>
+        </div>
+        <div class="form-group">
+            <label>아이콘</label>
+            <input type="text" id="node-icon" placeholder="이모지 또는 텍스트" class="form-input">
+        </div>
+        <div class="form-group">
+            <label>메모</label>
+            <textarea id="node-note" class="form-textarea" rows="3"></textarea>
+        </div>
+        <div class="form-group">
+            <label>태그</label>
+            <input type="text" id="node-tags" placeholder="태그1, 태그2..." class="form-input">
+        </div>
+        <div class="form-group">
+            <label>우선순위</label>
+            <input type="range" id="node-priority" min="1" max="5" value="3" class="form-range">
+            <span id="node-priority-value">3</span>
+        </div>
+        <div class="form-group">
+            <label>진행률</label>
+            <input type="range" id="node-progress" min="0" max="100" value="0" class="form-range">
+            <span id="node-progress-value">0%</span>
+        </div>
+        <div class="form-group">
+            <label>링크</label>
+            <input type="url" id="node-link" placeholder="https://..." class="form-input">
+        </div>
+        <div class="form-group">
+            <label>이미지</label>
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <button id="node-image-load" class="form-button" style="width: 100%;">이미지 불러오기</button>
+                <button id="node-image-remove" class="form-button" style="width: 100%; display: none;">이미지 제거</button>
+                <div id="node-image-preview" style="margin-top: 10px;"></div>
+                <div id="node-image-aspect-ratio-group" style="display: none;">
+                    <label style="display: block; margin-bottom: 5px;">가로세로 비율</label>
+                    <input type="range" id="node-image-aspect-ratio" min="0.1" max="3.0" step="0.1" value="1.0" class="form-range">
+                    <span id="node-image-aspect-ratio-value">1.0</span>
+                </div>
+            </div>
+        </div>
+        <div class="form-actions">
+            <button class="btn-primary" id="save-node">저장</button>
+            <button class="btn-secondary" id="cancel-edit">취소</button>
+        </div>
+    </div>
+</div>
+
+<!-- 연결선 속성 패널 -->
+<div id="connection-panel" class="node-panel hidden">
+    <div class="panel-header">
+        <span>선 속성</span>
+        <div>
+            <button class="panel-close" id="close-connection-panel">✕</button>
+        </div>
+    </div>
+    <div class="panel-content">
+        <div class="form-group">
+            <label>선 스타일</label>
+            <select id="connection-style" class="form-select">
+                <option value="solid">실선</option>
+                <option value="dashed">점선</option>
+                <option value="thick">굵은 선</option>
+            </select>
+        </div>
+        <div class="form-actions">
+            <button class="btn-primary" id="save-connection">저장</button>
+            <button class="btn-secondary" id="delete-connection">삭제</button>
+        </div>
+    </div>
+</div>
+
+<!-- 컨텍스트 툴바 -->
+<div id="context-toolbar" class="context-toolbar hidden">
+    <!-- 메인 툴바 -->
+    <div class="context-toolbar-main">
+        <button class="context-btn" data-action="connect" title="선 연결">🔗</button>
+        <button class="context-btn" data-action="color" title="색상">🎨</button>
+        <button class="context-btn" data-action="shape" title="모양">⭕</button>
+        <button class="context-btn" data-action="line" title="선 스타일">〰️</button>
+        <button class="context-btn" data-action="border" title="테두리">🔲</button>
+    </div>
+    
+    <!-- 색상 팔레트 (하위 메뉴) -->
+    <div id="context-color-menu" class="context-submenu hidden">
+        <button class="context-color-btn" data-color="#2d89ef" style="background: #2d89ef;" title="파란색"></button>
+        <button class="context-color-btn" data-color="#ff6b6b" style="background: #ff6b6b;" title="빨간색"></button>
+        <button class="context-color-btn" data-color="#4ecdc4" style="background: #4ecdc4;" title="청록색"></button>
+        <button class="context-color-btn" data-color="#ffe66d" style="background: #ffe66d;" title="노란색"></button>
+        <button class="context-color-btn" data-color="#a8e6cf" style="background: #a8e6cf;" title="연두색"></button>
+        <button class="context-color-btn" data-color="#ff8b94" style="background: #ff8b94;" title="분홍색"></button>
+        <button class="context-color-btn" data-color="#c7ceea" style="background: #c7ceea;" title="보라색"></button>
+        <button class="context-color-btn" data-color="#ffffff" style="background: #ffffff; border: 1px solid #ccc;" title="흰색"></button>
+    </div>
+    
+    <!-- 모양 선택 (하위 메뉴) -->
+    <div id="context-shape-menu" class="context-submenu hidden">
+        <button class="context-shape-btn" data-shape="circle" title="원형">⭕</button>
+        <button class="context-shape-btn" data-shape="square" title="사각형">⬜</button>
+        <button class="context-shape-btn" data-shape="diamond" title="다이아몬드">◆</button>
+        <button class="context-shape-btn" data-shape="hexagon" title="육각형">⬡</button>
+    </div>
+    
+    <!-- 선 스타일 선택 (하위 메뉴) -->
+    <div id="context-line-menu" class="context-submenu hidden">
+        <button class="context-line-btn" data-style="solid" title="실선">━</button>
+        <button class="context-line-btn" data-style="dashed" title="점선">┅</button>
+        <button class="context-line-btn" data-style="thick" title="굵은 선">▬</button>
+    </div>
+    
+    <!-- 테두리 설정 (하위 메뉴) -->
+    <div id="context-border-menu" class="context-submenu hidden">
+        <button class="context-border-btn" data-border-width="1" title="얇은 테두리">─</button>
+        <button class="context-border-btn" data-border-width="2" title="보통 테두리">━</button>
+        <button class="context-border-btn" data-border-width="3" title="굵은 테두리">═</button>
+        <button class="context-border-btn" data-border-width="0" title="테두리 없음">○</button>
+    </div>
+</div>
+
+<!-- 상태 표시 -->
+<div id="status-bar" class="status-bar">
+    <span id="status-text">준비</span>
+    <span class="status-separator">|</span>
+    <span id="node-count">노드: 1</span>
+    <span class="status-separator">|</span>
+    <span id="connection-count">연결: 0</span>
+    <span class="status-separator">|</span>
+    <span id="position-info">X: 0, Y: 0</span>
+</div>
+
+<!-- 설정 패널 -->
+<div id="settings-panel" class="node-panel hidden">
+    <div class="panel-header">
+        <span>설정</span>
+        <button class="panel-close" onclick="this.closest('.node-panel').classList.add('hidden')">✕</button>
+    </div>
+    <div class="panel-content">
+        <div class="form-group">
+            <label>그리드 표시</label>
+            <input type="checkbox" id="show-grid" checked>
+        </div>
+        <div class="form-group">
+            <label>자동 저장</label>
+            <input type="checkbox" id="auto-save" checked>
+        </div>
+        <div class="form-group">
+            <label>애니메이션</label>
+            <input type="checkbox" id="enable-animation" checked>
+        </div>
+    </div>
+</div>
+
+<!-- 도움말 패널 -->
+<div id="help-panel" class="help-panel hidden">
+    <div class="panel-header">
+        <span>도움말</span>
+        <div>
+            <button class="panel-expand" id="help-panel-expand" title="확장/축소">⛶</button>
+            <button class="panel-close" id="close-help-panel">✕</button>
+        </div>
+    </div>
+    <div class="panel-content" id="help-panel-content">
+        <div class="help-section">
+            <h3>📝 노드 조작</h3>
+            <ul>
+                <li><strong>노드 추가:</strong> 툴바의 "+" 버튼 또는 <kbd>A</kbd> 키</li>
+                <li><strong>노드 선택:</strong> 노드 클릭 (다중 선택: <kbd>Shift</kbd>+클릭)</li>
+                <li><strong>노드 드래그:</strong> 노드를 클릭하고 이동</li>
+                <li><strong>노드 크기 조절:</strong> <kbd>S</kbd> 키를 누른 상태에서 노드를 드래그 (Blender 스타일)</li>
+                <li><strong>텍스트 편집:</strong> 노드 텍스트 영역 더블클릭 (인라인 편집)</li>
+                <li><strong>속성 편집:</strong> 노드 텍스트 외 영역 더블클릭 또는 선택 후 속성 패널에서 편집</li>
+                <li><strong>노드 삭제:</strong> 노드 선택 후 <kbd>Delete</kbd> 또는 <kbd>Backspace</kbd> 키</li>
+            </ul>
+        </div>
+        <div class="help-section">
+            <h3>🔗 연결하기</h3>
+            <ul>
+                <li><strong>연결 모드:</strong> 툴바의 "●" 버튼 또는 <kbd>C</kbd> 키</li>
+                <li><strong>연결 방법:</strong> 첫 번째 노드를 클릭한 후 두 번째 노드를 클릭</li>
+                <li><strong>연속 연결:</strong> 툴바에서 시작한 연결 모드는 여러 노드를 연속으로 연결 가능</li>
+                <li><strong>우클릭 연결:</strong> 노드 우클릭 → 연결 버튼 (한 번만 연결 후 종료)</li>
+                <li><strong>연결선 스타일:</strong> 연결선 선택 후 속성 패널에서 변경 (실선/점선/굵은 선)</li>
+            </ul>
+        </div>
+        <div class="help-section">
+            <h3>🎨 노드 스타일링</h3>
+            <ul>
+                <li><strong>우클릭 메뉴:</strong> 노드 우클릭으로 색상, 모양, 선 스타일, 테두리 변경</li>
+                <li><strong>색상:</strong> 🎨 버튼으로 8가지 색상 선택</li>
+                <li><strong>모양:</strong> ⭕ 버튼으로 원형/사각형/다이아몬드/육각형 선택</li>
+                <li><strong>테두리:</strong> 🔲 버튼으로 테두리 두께 조절 (얇음/보통/굵음/없음)</li>
+                <li><strong>속성 패널:</strong> 노드 선택 후 속성 패널에서 색상, 크기, 폰트, 투명도, 아이콘, 메모, 태그, 우선순위, 진행률, 링크 등 상세 설정</li>
+            </ul>
+        </div>
+        <div class="help-section">
+            <h3>🖼️ 이미지 노드</h3>
+            <ul>
+                <li><strong>이미지 추가:</strong> 노드 선택 → 속성 패널 → "이미지 불러오기"</li>
+                <li><strong>이미지 표시:</strong> 이미지가 있는 노드는 노드 형태 없이 이미지만 표시</li>
+                <li><strong>이미지 비율 조절:</strong> 속성 패널에서 가로세로 비율 슬라이더로 조절 (0.1 ~ 3.0)</li>
+                <li><strong>이미지 제거:</strong> 속성 패널 → "이미지 제거"</li>
+                <li><strong>기능 유지:</strong> 이미지 노드도 연결, 크기 조절, 드래그 등 모든 기능 사용 가능</li>
+            </ul>
+        </div>
+        <div class="help-section">
+            <h3>🔍 줌 & 팬</h3>
+            <ul>
+                <li><strong>줌 인/아웃:</strong> 마우스 휠 또는 <kbd>+</kbd>/<kbd>-</kbd> 키</li>
+                <li><strong>줌 리셋:</strong> <kbd>0</kbd> 키로 100%로 복원</li>
+                <li><strong>팬:</strong> 중간 버튼 드래그 또는 <kbd>Ctrl</kbd>+왼쪽 버튼 드래그</li>
+                <li><strong>맞춤:</strong> 툴바의 "⌂" 버튼 또는 <kbd>F</kbd> 키 (모든 노드가 화면에 맞게)</li>
+                <li><strong>방향키 이동:</strong> <kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> 키로 캔버스 이동</li>
+            </ul>
+        </div>
+        <div class="help-section">
+            <h3>📐 정렬 기능</h3>
+            <ul>
+                <li><strong>정렬 메뉴:</strong> 툴바의 정렬 버튼 클릭</li>
+                <li><strong>정렬 옵션:</strong> 왼쪽/오른쪽/위/아래/수평/수직 정렬</li>
+                <li><strong>단축키:</strong> <kbd>Ctrl+Shift+L</kbd> (왼쪽), <kbd>Ctrl+Shift+R</kbd> (오른쪽), <kbd>Ctrl+Shift+T</kbd> (위), <kbd>Ctrl+Shift+B</kbd> (아래), <kbd>Ctrl+Shift+H</kbd> (수평), <kbd>Ctrl+Shift+V</kbd> (수직)</li>
+                <li><strong>조건:</strong> 2개 이상의 노드가 선택되어 있어야 함</li>
+            </ul>
+        </div>
+        <div class="help-section">
+            <h3>🔎 검색</h3>
+            <ul>
+                <li><strong>검색:</strong> 툴바의 검색창에 키워드 입력</li>
+                <li><strong>검색 결과:</strong> 검색 결과가 표시되면 클릭하여 해당 노드로 이동</li>
+                <li><strong>검색 취소:</strong> 검색창 비우기</li>
+            </ul>
+        </div>
+        <div class="help-section">
+            <h3>⚙️ 보드 설정</h3>
+            <ul>
+                <li><strong>보드 색상:</strong> 툴바의 보드 색상 버튼으로 변경 (검은색/흰색/투명)</li>
+                <li><strong>그리드 표시:</strong> 툴바의 "#" 버튼으로 그리드 표시/숨김 또는 <kbd>G</kbd> 키</li>
+            </ul>
+        </div>
+        <div class="help-section">
+            <h3>⌨️ 단축키</h3>
+            <ul>
+                <li><kbd>A</kbd>: 노드 추가</li>
+                <li><kbd>C</kbd>: 연결 모드 토글</li>
+                <li><kbd>F</kbd>: 화면에 맞춤</li>
+                <li><kbd>G</kbd>: 그리드 표시/숨김</li>
+                <li><kbd>M</kbd>: 암기 모드 토글</li>
+                <li><kbd>P</kbd>: 마우스 통과 모드 (다른 앱 사용 가능)</li>
+                <li><kbd>S</kbd>: 크기 조절 모드 (누른 상태에서 드래그)</li>
+                <li><kbd>?</kbd>: 도움말 표시/숨기기</li>
+                <li><kbd>+</kbd>/<kbd>-</kbd>: 줌 인/아웃</li>
+                <li><kbd>0</kbd>: 줌 리셋 (100%)</li>
+                <li><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd>: 캔버스 이동</li>
+                <li><kbd>Delete</kbd>/<kbd>Backspace</kbd>: 선택된 노드 삭제</li>
+                <li><kbd>Escape</kbd>: 연결 모드 종료 또는 앱 종료</li>
+                <li><kbd>F11</kbd>: 전체화면 토글</li>
+                <li><kbd>Ctrl+Z</kbd>: 실행 취소</li>
+                <li><kbd>Ctrl+Y</kbd> 또는 <kbd>Ctrl+Shift+Z</kbd>: 다시 실행</li>
+                <li><kbd>Ctrl+S</kbd>: 파일 저장</li>
+                <li><kbd>Ctrl+O</kbd>: 파일 열기</li>
+                <li><kbd>Ctrl+C</kbd>: 선택된 노드 복사</li>
+                <li><kbd>Ctrl+V</kbd>: 노드 붙여넣기</li>
+                <li><kbd>Ctrl+A</kbd>: 전체 노드 선택</li>
+                <li><kbd>Ctrl+Shift+L</kbd>: 왼쪽 정렬</li>
+                <li><kbd>Ctrl+Shift+R</kbd>: 오른쪽 정렬</li>
+                <li><kbd>Ctrl+Shift+T</kbd>: 위 정렬</li>
+                <li><kbd>Ctrl+Shift+B</kbd>: 아래 정렬</li>
+                <li><kbd>Ctrl+Shift+H</kbd>: 수평 정렬</li>
+                <li><kbd>Ctrl+Shift+V</kbd>: 수직 정렬</li>
+            </ul>
+        </div>
+        <div class="help-section">
+            <h3>💾 파일 관리</h3>
+            <ul>
+                <li><strong>저장:</strong> <kbd>Ctrl+S</kbd> 또는 툴바의 저장 버튼</li>
+                <li><strong>열기:</strong> <kbd>Ctrl+O</kbd> 또는 툴바의 열기 버튼</li>
+                <li><strong>자동 저장:</strong> 작업 내용이 자동으로 임시 파일에 저장됨</li>
+                <li><strong>최근 파일:</strong> 프로그램 시작 시 최근 파일 자동 로드</li>
+            </ul>
+        </div>
+        <div class="help-section">
+            <h3>🎯 특수 기능</h3>
+            <ul>
+                <li><strong>암기 모드:</strong> <kbd>M</kbd> 키로 토글, 노드 텍스트를 숨겨 암기 연습</li>
+                <li><strong>마우스 통과 모드:</strong> <kbd>P</kbd> 키로 토글, 마인드맵 뒤의 다른 앱 사용 가능</li>
+                <li><strong>전체화면:</strong> <kbd>F11</kbd> 키 또는 툴바의 전체화면 버튼</li>
+                <li><strong>최소화:</strong> 툴바의 "_" 버튼</li>
+            </ul>
+        </div>
+        <div class="help-section">
+            <h3>📋 패널 조작</h3>
+            <ul>
+                <li><strong>패널 이동:</strong> 패널 헤더를 드래그하여 위치 변경</li>
+                <li><strong>패널 확장/축소:</strong> 패널 헤더의 "⛶" 버튼 클릭</li>
+                <li><strong>패널 닫기:</strong> 패널 헤더의 "✕" 버튼 클릭</li>
+                <li><strong>속성 패널:</strong> 노드 선택 시 자동으로 열림</li>
+                <li><strong>도움말 패널:</strong> <kbd>?</kbd> 키 또는 툴바의 "?" 버튼</li>
+            </ul>
+        </div>
+        <div class="help-section">
+            <h3>💡 팁</h3>
+            <ul>
+                <li>노드 텍스트 영역을 더블클릭하면 인라인 편집이 시작됩니다</li>
+                <li>노드 텍스트 외 영역을 더블클릭하면 속성 패널이 열립니다</li>
+                <li><kbd>S</kbd> 키를 누른 상태에서 드래그하면 노드 크기를 조절할 수 있습니다</li>
+                <li>우클릭 메뉴에서 노드 스타일을 빠르게 변경할 수 있습니다</li>
+                <li>이미지 노드는 노드 형태 없이 이미지만 표시되지만 모든 기능을 사용할 수 있습니다</li>
+                <li>연결 모드는 툴바에서 시작하면 연속 연결이 가능하고, 우클릭에서 시작하면 한 번만 연결됩니다</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<canvas id="canvas" oncontextmenu="return false;"></canvas>
+
+<script src="renderer.js"></script>
+</body>
+</html>
